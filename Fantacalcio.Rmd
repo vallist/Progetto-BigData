@@ -1,0 +1,542 @@
+---
+title: "Progetto Data Management for Big Data"
+author: "Valentina Listuzzi"
+date: "21 settembre 2018"
+output:
+  html_document:
+    toc: TRUE
+    theme: flatly
+    highlight: pygments
+editor_options: 
+  chunk_output_type: console
+---
+
+<style>
+body {
+text-align: justify}
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, eval=TRUE, cache=TRUE, message=FALSE, warning=FALSE, fig.align='center')
+```
+
+# Fantacalcio, che passione!
+Il Fantacalcio è stato definito come *"il gioco più bello del mondo dopo il calcio"*. Per svariate persone questa affermazione potrebbe essere un'assurdità, qualcosa di totalmente illogico, ma qualcuno che ama il calcio potrebbe apprezzarla e comprenderla. Io rientro tra coloro che condividono quella frase. Ma che cos'è di preciso il Fantacalcio? Si tratta del più popolare fantasy game sul calcio, giocato da milioni di persone. È stato inventato da Riccardo Albini, giornalista italiano, nel 1988 e raggiunse la popolarità in tutta Italia nel 1994 grazie alla collaborazione con *La Gazzetta dello Sport*. Da quel momento infatti il quotidiano sportivo accolse il gioco sulle sue pagine, fornendo le votazioni (di giornata in giornata) per calcolare i punteggi delle squadre di calcio viruali (chiamate fantasquadre). L'iniziativa raccolse molto successo, in quanto ci si aspettavano circa 10.000 partecipanti, ma nel corso dell'anno si raggiunsero 70.000 iscritti.
+
+L'obiettivo di questo gioco è quello di comporre una fantasquadra formata da 25 giocatori reali scelti tra le squadre di serie A, di gestirla e di schierarla in campo durante le varie giornate del campionato per cercare di conquistare il fantascudetto di Lega. Terminata ogni giornata la fantasquadra otterrà un punteggio che è dato dalla somma algebrica dei punteggi dei singoli giocatori. I calciatori che portano punti alla fantaquadra sono solo i titolari che hanno ottenuto punteggio ai fini del gioco e gli eventuali calciatori della panchina che hanno sostituito coloro, tra i titolari, che non hanno ricevuto punteggio. Però, ciò che più conta è capire come viene determinato il **punteggio** di ogni giocatore (detto fanta voto); questo dipende dal voto pubblicato sulla *Gazzetta dello Sport* al quale possono sommarsi dei bonus e sottrarsi dei malus.
+
+In questa analisi il mio obiettivo è scoprire più nel dettaglio questo gioco; l'analisi prende in considerazione gli ultimi 7 campionati di serie A, partendo quindi dalla stagione 2011/2012 e arrivando alla stagione 2017/2018, anno in cui la Juventus è riuscita a conquistare il suo settimo scudetto consecutivo. In particolare, le domande a cui vorrei dare una risposta, dopo aver fatto un'analisi esplorativa sui dati raccolti, sono le seguenti:
+
++ Il ruolo del giocatore incide sul fanta media voto? Quali variabili incidono maggiormente sul fanta media voto?
++ Esiste una correlazione tra la valutazione iniziale dei giocatori, pubblicata sulla Gazzetta dello sport prima dell'inizio del campionato, e il fanta media voto?
++ La squadra che ha il fanta media voto più alto è quella che ottiene un punteggio maggiore e quindi vince il campionato?
++ Il fanta media voto delle diverse squadre come si evolve nel tempo?
++ La forza della Juventus può esere spiegata attraverso alcune variabili?
++ Consigli per i giocatori da prendere e successivamente da schierare.
+
+## Dataset utilizzati
+Per questa analisi sono stati utilizzati 3 dataset, costruiti grazie a dati ricavati da 3 diversi siti internet, i quali fornivano informazioni suddivise in base agli anni.
+
+### Dataset giocatori
+Questa tabella è composta da 3676 righe, le quali restituiscono informazioni sulle statistiche del fantacalcio, dei 7 anni presi in considerazione divise per ruolo, di tutti i giocatori della Serie A con **almeno** una presenza. Quindi se si fissa l'attenzione su un singolo anno, nella tabella ci saranno tutti i giocatori che hanno collezionato almeno una presenza. Le variabili sono le seguenti:
+
++ *ruolo*: ruolo del giocatore. Si tratta di una variabile qualitativa i cui valori possibili sono A=attaccante, C=centrocampista, D=difensore, P= portiere.
++ *giocatore*: cognome e nome di un giocaore con almeno una presenza nell'anno considerato.
++ *squadra*: squadra di un giocatore in un certo anno. Se un giocatore nel mercato invernale si trasferisce in una squadra (sempre di serie A) allora la squadra associata a quel calciatore sarà quella in cui si è trasferito. 
++ *anno*: stagione calcistica. Esempio: l'anno 2017 rappresenta la stagione calcistica 2017/2018, l'anno 2016 rappresenta la stagione calcistica 2016/2017 fino ad arrivare all'anno 2011 che rappresenta la stagione 2011/2012. In questo modo la colonna sarà di tipo intero.
++ *P*: indica le presenze di quel giocatore in una stagione. Tiene conto anche di chi non è partito titolare ma è sub entrato a qualcun'altro. Tiene conto anche delle presenze di chi all'inizio del campionato era in una certa squadra ma nel mercato invernale ha subito un trasferimento. Se il trasferimento è avvenuto in una squadra sempre di serie A allora le presenze tengono conto delle presenze nelle due squadre, se invece il trasferimento è in una squadra di un'altro campionato allora le presenze si fermano a quelle avvenute con la squadra di serie A.
++ *MV*: rappresenta la media del voto di un singolo giocatore, calcolata sui vari voti ricevuti da quel giocatore durante le sue presenze, in un certo anno. I singoli voti sono quelli pubblicati sulla *Gazzetta dello Sport* e dipendono dalla prestazione del giocatore in una partita.
++ *FMV*: rappresenta il fanta media voto, calcolato sui vari fanta voti ricevuti da un determinato giocatore durante le sue presenze, in una stagione. Il fanta voto ricevuto da un giocatore dipende dal voto pubblicato sul quotidiano sportivo e da bonus o malus. I bonus/malus adottati dal sito in cui i dati sono stati scaricati sono:
+
+BONUS                                     |PUNTI 
+------------------------------------------|----
+Per ogni gol segnato da un attaccante     | 3
+Per ogni gol segnato da un centrocampista | 4
+Per ogni gol segnato da un difensore      | 4,5
+Per ogni assist effettuato                | 1
+Per ogni rigore parato                    | 3
+**MALUS**                                 |**PUNTI** 
+Per ogni ammonizione                      | - 0,5
+Per ogni espulsione                       | - 1
+Per ogni autogol                          | - 2
+Per ogni rigore sbagliato                 | - 3
+Per ogni goal subito dal portiere         | - 1
+
++ *G*: totale goal segnati da un giocatore in un certo anno. Sono contenuti anche i rigori segnati.
++ *A*: totale assist effettuati da un giocatore in un anno. 
++ *AM*: totale ammonizion di un giocatore in un anno.
++ *ES*: totale espulsioni di un giocatore in un anno.
++ *AU*: totale autogol di un giocatore in un anno.
++ *GS*: totale goal subiti, questa variabile riguarda solo i giocatori con il ruolo di portieri. Per gli altri ruoli la variabili assumerà valore 0.
++ *RS*: totale rigori sbagliati da un giocatore in un anno.
++ *RP*: totale rigori parati, questa variabile riguarda solo i giocatori con il ruolo di portieri. Per gli altri ruoli questa variabile assumerà valore 0.
+
+### Dataset valutazioni
+Questo dataset contiene le valutazioni **iniziali** di ogni singolo giocatore pubblicate sul sito della *Gazzetta dello Sport*, verso fine agosto. In questo dataset sono contenute anche le valutazioni di giocatori che poi, durante una certa stagione, non hanno collezionato presenze. Di seguito si analizzano le variabili contenute:
+
++ *anno*: anno in cui viene pubblicata una certa valutazione. Esempio: anno 2017 riguarda valutazioni iniziali di giocatori per la stagione 2017/2018.
++ *giocatore*: cognome e nome di un giocatore che, all'inizio della stagione, fa parte della rosa di una squadra di serie A. Sono quindi contenuti anche i giocatori che nel mercato invernale si sono poi trasferiti ad un altro campionato.
++ *valutazione*: valutazione iniziale di ogni singolo giocatore per una stagione, pubblicata sulla *Gazzetta dello Sport*
+
+La valutazione di un giocatore può subire variazioni durante il corso delle partie, in base al rendimento, ma ciò che conta per questa analisi è solamente la valutazione iniziale.
+
+### Dataset squadre
+Questo dataset contiene informazioni sulle squadre di serie A delle ultime 7 stagioni. Le variabili sono le seguenti:
+
++ *anno*: stagione calcistica. Esempio: l'anno 2017 rappresenta la stagione calcistica 2017/2018 (come per la variabile anno della tabella giocatori)
++ *squadra*: squadra che fa parte del campionato di serie A in un determinato anno.
++ *giocate*: partite disputate da una squadra in una stagione. Il valore di questa variaible è lo stesso per tutte le squadre e quindi non servirà per l'analisi.
++ *punti*: punteggio finale ottenuto dalla squadra in un anno.
++ *vittore*: vittorie totali della squadra in un anno.
++ *pareggi*: pareggi della squadra in un anno.
++ *sconfitte*: sconfitte della squadra in un anno.
++ *GF*: totale goal fatti della squadra in un anno.
++ *GS*: totale goal subiti della squadra in un anno.
++ *VC*: vittorie in casa della squadra in un anno.
++ *PC*: pareggi in casa della squadra in un anno.
++ *SC*: sconfitte in casa della squadra in un anno.
++ *GF_CASA*: totale goal fatti in casa della squadra in un anno.
++ *GS_CASA*: totale goal subiti in cas della squadra in un anno.
++ *VT*: vittorie in trasferta della squadra in un anno.
++ *PT*: pareggi in trasferta della squadra in un anno.
++ *ST*: sconfitte in trasferta della squadra in un anno.
++ *GF_TRASF*: totale goal fatti in trasferta della squadra in un anno.
++ *GS_TRASF*: totale goal subiti in trasferta della squadra in un anno.
+
+Ci sono alcune variabili in questo dataset che non sono necessarie, ovvero le variabili giocate, vittorie, pareggi, sconfitte, GF e GS siccome per l'analisi voglio concentrarmi sulla distinzione tra partite in casa e partite in trasferta; nel seguito quindi verranno eliminate.
+
+## Schema concettuale e relazionale
+Prima di partire con l'analisi del dataset, una cosa importante è capire lo schema concettuale e lo schema relazionale dei dati siccome quest'ultimo sarà utile durante le operazioni di join. Partendo dallo schema concettuale possiamo quindi dire che sono presenti 3 entità :
+
++ GIOCATORI con chiave primaria formata da anno e giocatore;
++ VALUTAZIONI identificata da anno e giocatore;
++ SQUADRE identificata da anno e squadra.
+
+C'è una relazione di tipo **1:1** tra giocatori e valutazioni, in quanto un'istanza dell'entità giocatori piò essere associata ad un'istanza dell'entità valutazioni e vale il viceversa (ricordando però che istanze dell'entità valutazioni potrebbero non trovare una corrispondenza tra le istanze dell'altra entità); c'è inoltre una relazione di tipo **1:molti** tra giocatori e squadre.
+Passando allo schema relazionale, le tre entità del modello concettuale vengono tradotte in tabelle (la cui struttura è stata già analizzata); per quanto riguarda le relazioni, se vogliamo far parlare tra di loro le tabelle giocatori e valutazioni allora bisognerà inserire la relazione nella tabella giocatori (siccome per l'analisi si considerano solo giocatori con almeno una presenza e quindi con almeno 1 voto), così come per la relazione di tipo 1:molti dove la chiave esterna formata da squadra e anno della tabella giocatori corrisponderà alla chiave primaria (formata da squadra e anno) della tabella squadre.
+
+## Library
+Di seguito l'elenco dei pacchetti che saranno necessari per lo scolgimento delle analisi:
+```{r}
+library(tidyverse)
+library(purrr)
+library(readr)
+library(modelr)
+library(plotly)
+library(billboarder)
+library(corrplot)
+library(knitr)
+```
+
+## Importazione dei dati
+I dati si trovano in formato .csv, quindi la prima cosa che bisogna fare è importarli, sfruttando il pacchetto readr di tidyverse.
+```{r}
+giocatori<-read_csv("giocatori.csv", col_names = TRUE,col_types = list(ruolo=col_factor(levels = c("P","D","C","A"))))
+
+valutazioni<-read_csv("valutazioni.csv", col_names= TRUE)
+squadre<-read_csv("squadre.csv", col_names= TRUE)
+```
+
+## Formato tidy dei dati e verifica vincoli di integrità
+I dati non hanno bisogno di particolari aggiustamenti siccome sono già in forma normale ordinata, ovvero i tre vincoli sono soddisfatti:
+
++ Le variabili sono le colonne della tabella
++ Le osservazioni sono le righe della tabella
++ I valori sono le celle della tabella
+
+Prima di partire con l'analisi però bisogna controllare che i vincoli di chiave primaria e i vincoli di chiave esterna siano soddisfatti. Siccome nella tabella giocatori e nella tabella squadre ci sono due variabili che hanno lo steso nome (GS) ma vogliono dire cose diverse (in quanto il dato presente nella tabella squadre è un dato aggregato sui goal subiti dalla squadra), come prima cosa si procede cambiando il nome della variabile GS della tabella giocatori rinominandola con GSUB.
+```{r}
+#Tabella giocatori
+giocatori<-rename(giocatori,GSUB=GS)
+giocatori%>%
+  count(giocatore, anno)%>%
+  filter(n>1)
+giocatori%>%
+  anti_join(valutazioni)%>%
+  count(giocatore,anno)
+giocatori%>%
+  anti_join(squadre)%>%
+  count(squadra,anno)
+#Tabella valutazioni   
+valutazioni%>%
+  count(anno,giocatore)%>%
+  filter(n>1)
+#Tabella squadre
+squadre%>%
+  count(anno,squadra)%>%
+  filter(n>1)
+```
+
+Ora che i vincoli sono stati verificati, si procede ordinando i dataset e, per quanto riguarda la tabella squadre, si vanno ad eliminare alcune variabili in modo da focalizzare l'attenzione su partite in casa e partite in trasferta. Inoltre, sempre nella tabella squadre, si aggiungono due colonne DR_CASA e DR_TRASF che sono rispettivamente la differenza tra i goal fatti e i goal subiti in casa e in trasferta.
+```{r}
+#Tabella giocatori
+giocatori<-arrange(giocatori,desc(anno,giocatore))%>%
+  select(anno,giocatore,squadra,ruolo,everything())
+# Tabella valutazioni
+valutazioni<-arrange(valutazioni,desc(anno,giocatore))
+# Tabella squadre
+squadre<- mutate(squadre,DR_CASA= GF_CASA - GS_CASA, DR_TRASF= GF_TRASF - GS_TRASF)%>%
+  select(anno,squadra,punti,(VC:GS_CASA), DR_CASA, (VT:GS_TRASF), DR_TRASF)%>%
+    arrange(desc(anno,punti))
+```
+
+## Analisi sulla tabella giocatori
+Una volta che le tabelle sono state sistemate, una cosa molto importante da fare è un'analisi esplorativa per capire struttura e variazioni delle singole variabili e inoltre cercare di scoprire se esistono delle relazioni tra le variaibli. Concentriamoci sulla tabella giocatori.
+```{r}
+giocatori%>%
+  count(giocatore)
+```
+In questa tabella ci sono 3676 righe, che forniscono informazioni sui giocatori. Fissata la finestra di osservazione di 7 anni, un singolo giocatore può aver giocato in serie A in più di una stagione. Il numero di giocatori distinti sono  1510. Vediamo le correlazioni tra le variabili, usando la visualizzazione della matrice di correlazione:
+```{r}
+giocatori1<-select(giocatori,-giocatore,-anno,-squadra,-ruolo)
+giocatoricorr<-cor(giocatori1)
+corrplot(giocatoricorr, method="ellipse", diag= FALSE, order= "hclust", title="Correlazioni tra le variabili del dataset giocatori", mar=c(0,0,4,0))
+```
+Da questa visualizazzione si nota come la variabile FMV sia fortemente correlata con la variabile GOAL, tutto ciò non è una scoperta siccome, in caso di goal, il gicoatore ottiene un bonus molto alto, pari a 3, 4 o 4.5 punti a seconda che sia attaccante, centrocampista o difensore. Tutto ciò si può vedere molto meglio tramite uno scatter plot in cui vengono inseriti anche i ruoli dei giocatori:
+```{r}
+a<-giocatori%>%
+  filter(ruolo !="P")%>%
+  ggplot(aes(x=G,y=FMV,color=ruolo,frame=anno))+
+  geom_point()+
+  theme_light()+
+  labs(title="Il FMV aumenta all'aumentare del numero dei goal")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(a)
+```
+Attribuendo al colore dei punti la variabile ruolo sembra che coloro che segnano di più sono attaccanti e sono quindi questi che possono avere un FMV alto. Per vedere se ciò è vero, visualizziamo il tutto tramite un boxplot:
+```{r}
+giocatori%>%
+  filter(ruolo!="P")%>%
+  ggplot(aes(x=reorder(ruolo,G,FUN=median),y=G))+
+  geom_boxplot()+
+  theme_light()+
+  labs(title="Boxplot distribuzione GOAL per RUOLO", x="ruolo",y = "goal")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(ylim = c(0, 38))
+```
+Dal boxplot si vede come la mediana degli attaccanti sia superiore a quella dei centrocampisti e si nota anche che gli attaccati possono raggiungere valori di goal molto alti. Un'altra variaible che, dalla matrice di correlazione, risulta essere correlata con il FMV sono il numero di assist effettuati.
+```{r}
+b<-giocatori%>%
+  filter(ruolo!="P")%>%
+  ggplot(aes(x=A, y=FMV,color=ruolo,frame=anno))+
+  geom_point()+
+  theme_light()+
+  labs(title="Il FMV aumenta all'aumentare del numero di assist effettuati")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(b)
+```
+Anche qui si vede come all'aumentare del numero di assist aumenta anche il FMV. Per capire la distribuzione degli assist in base al ruolo del giocatore è utile anche qui un boxplot:
+```{r}
+giocatori%>%
+  filter(ruolo!="P")%>%
+  ggplot(aes(x=reorder(ruolo,A,FUN=median),y=A))+
+  geom_boxplot()+
+  theme_light()+
+  labs(title="Boxplot distribuzione ASSIST per RUOLO", x="ruolo", y = "assist")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(ylim = c(0, 15))
+```
+Il risultato è il 75% della variabilità degli assist è uguale per attaccanti e centrocampisti, ma i centrocampisti pssono effettuare più assist.
+
+### Ma quindi il FMV dipende dal ruolo?
+Mettendo assieme i risultati ottenuti si va a vedere qual è il ruolo che ottiene un FMV più alto, considerando quindi tutti i fattori che possono incidere sul FMV:
+```{r}
+giocatori%>%
+  ggplot() + 
+  stat_summary(
+    mapping = aes(x = ruolo, y = FMV),
+    fun.ymin = min,
+    fun.ymax = max,
+    fun.y = median,
+    colour="blue"
+  )+
+  theme_light()+
+  labs(title="Il FMV dipende dal ruolo", x="ruolo", y = "fanta media voto")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Complessivamente quindi, gli attaccanti hanno una mediana del FMV superiore ai centrocampisti. Dallle analisi svolte si può quindi concluedere che esiste una dipendenza del FMV dal ruolo.
+
+### Quali altre variabili sono fortemente correlate al FMV?
+Si è visto come il FMV sia molto legato ai goal e agli assist, si procede ora andando a capire se ci sono altre variabili che incidono su questo. Si parte col vedere se all'aumentare delle presenze aumenta il FMV.
+```{r}
+c<-giocatori%>%
+  ggplot(aes(x=P,y=FMV,color=ruolo,frame=anno))+
+  geom_point()+
+  theme_light()+
+  labs(title="FMV e presenze")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(c)
+
+mod1<-lm(FMV~P,data=giocatori)
+rsquare(mod1, data= giocatori)
+```
+Da questo grafico si nota una nuvola di punti senza particolari trend. Andando a creare  un modello che spiega il FMV tramite la variabile P e determinando l'R-quadro si conclude dicendo che non c'è associazione tra le due variabili. In generale si dovrebbe considerare il FMV solo per quei giocatori con un numero abbastanza grande di presenze, queste perchè un giocatore con una sola presenza (che quindi ha giocato benissimo in quella partita) potrebbe avere il FMV più alto di uno che ha giocato tantissime partite; inoltre per il fantcalcio sono necessari giocatori in grado di garantire nmerose presenze. Nel proseguo dell'analisi quindi il FMV dovrà essere pesato con pesi, appunto, le presenze.
+
+Ma c'è un'altra variabile che è molto correlata, ed è il MV. Infatti il punto di partenza per la determinazione del FMV è proprio il voto dato dalla *Gazzetta dello Sport*.
+```{r}
+giocatori%>%
+ggplot(aes(MV,FMV,color=ruolo))+
+  geom_point()+
+  geom_smooth(se=FALSE,method="lm")+
+  theme_light()+
+  labs(title="Andamento FMV vs MV")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+cor(giocatori$MV,giocatori$FMV)
+```
+Nel complesso la correlazione non è molto alta, questo perchè per i giocatori con il ruolo di portieri il FMV è molto più basso, ad ogni goal subito viene tolto un punto e quindi per i portieri è molto più difficile avere un FMV alto (anche dalla matrice di correlazione si notava una correlazione inversa tra FMV e GSUB). Per gli altri ruoli si nota un trend lineare.
+
+Le variabili maggiormente correlate con il FMV sono quindi: ruolo, goal, assist, goal subiti e MV. Costruiamo quindi un modello che spiega il FMV attraverso le variabili appena menzionate:
+```{r}
+mod2<-lm(FMV~ MV + ruolo + G + A + GSUB, data=giocatori)
+summary(mod2)
+```
+Queste variabili spiegano dunque l'84% della variabilità del FMV.
+
+### Migliori giocatori
+Si vuole ora vedere di ogni stagione, i 5 migliori giocatori (quelli con FMV maggiore). Dei 7 anni considerati si raggruppa per anno, selezionando solo 5 giocatori per anno, quelli che hanno ottenuto un FMV più alto (filtrando quelli con più di 10 presenze). In un grafico si visualizzano sull'asse delle x i goal e sull'asse delle y il relativo FMV, dove pallini con dimensione maggiore indicano un maggior numero di assist effettuati:
+```{r}
+d<-giocatori%>%
+  filter(P>10)%>%
+  group_by(anno)%>%
+  top_n(5,FMV)%>%
+  ggplot(aes(x=G, y=FMV,group=giocatore,frame=anno))+
+  geom_point()+
+  theme_light()+
+  labs(title="Migliori giocatori")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplotly(d)
+```
+
+Si considera ora solo l'utima stagione e si vanno a guardare chi ha ottenuto un FMV maggiore di 7.5 con più di 15 presenze. Il grafico mostra i goal e la dimensione rappresenta il numero di assist effettuati.
+```{r}
+e<-giocatori%>%
+  filter(anno==2017 & FMV>=7.5 & P>15)%>%
+  group_by(giocatore)%>%
+  select(anno,giocatore,squadra, ruolo, P, FMV, G, A)%>%
+  arrange(desc(FMV))%>%
+  ggplot(aes(x=G,y=FMV,color=giocatore, size=A))+
+  geom_point(alpha=1/2)+
+  theme_light()+
+  labs(title="Top della stagione 2017/2018")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(e)
+```
+Quindi per la rosa di quest'anno, vedendo i risultati verrebbe da prenderne alcuni di questi (sono ancora tutti in serie A). Però ogni stagione è diversa, non è detto che, se hanno ottenuto una buona FMV l'anno scorso la ottengano anche quest'anno.
+
+## Esiste una correlazione tra valutazione iniziale e FMV?
+Per vedere tutto questo occorre far parlare le due tabelle, dobbiamo fare un inner_join in modo che tutti i valori della tabella giocatore trovino una corrispondenza nella tabella valutazioni.
+```{r}
+valutaz<-giocatori%>%
+  inner_join(valutazioni)
+valutaz%>%
+  ggplot(aes(x=valutazione,y=FMV))+
+  geom_point()+
+  theme_light()+
+  geom_smooth(se=FALSE,method="lm")+
+  labs(title="Grafico valutazione vs fanta media voto, diviso per anno")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  facet_wrap(~ anno)
+```
+Dando una rapida occhiata ai grafici sembrerebbe che il FMV sia correlato con la valutazione. Costruiamo un modello e andiamo a vedere quanta variabilità del FMV è spiegato dalla variabile valutazione:
+```{r}
+mod3 <- lm(FMV ~ valutazione, data = valutaz)
+summary(mod1)
+
+valutaz<-valutaz%>%
+ add_residuals(mod3,"resid")
+ggplot(valutaz, aes(valutazione,resid))+
+  geom_hex(bins=30)
+```
+Il grafico dei residui mi fa capire che la variabile esplicativa non ha colto, per la maggior parte, la variabilità della varaibile risposta. Da tutto ciò si deduce che non bisogna basarsi solo sulle valutazioni iniziali pubblicate nel quotidiano sportivo.
+
+# Come si evolve il FMV delle squadre nel tempo
+La tabella squadre contiene informazioni sulle squadre degli ultimi 7 campionati di serie A. Ci sono delle squadre che non sono presenti in tutte le stagioni, quindi per questa analisi si considerano solo le squadre che sono presenti in tutti gli anni considerati, che sono le seguenti:
+```{r}
+squadre%>%
+  count(squadra)%>%
+  filter(n==7)%>%
+  select(squadra)
+```
+Ci sono quindi 11 squadre, per fare l'analisi se il FMV aumenta nel tempo consideremo solo queste. Si salva questo risultao in una variabile squadre7.
+```{r}
+squadre7<-squadre%>%
+  count(squadra)%>%
+  filter(n==7)%>%
+  select(squadra)
+```
+Facciamo un join tra la tabella giocatori e la tabella squadre7 in modo da avere solo i giocatori di queste 11 squadre:
+```{r}
+gioc7<-giocatori%>%
+  inner_join(squadre7)
+```
+Per vedere l'evoluzione del FMV delle squadre nel tempo quello che occorre è, per i diversi anni, il fanta media voto di ogni squadra, dato dai FMV dei suoi giocatori. Per fare questo creiamo una variabile media che contiene appunto questo dato; si tratta di una media pesata con pesi le presenze (questo perchè vogliamo dare più peso a chi ha disputato più partite):
+```{r}
+FMVsquadra<-gioc7%>%
+  group_by(anno,squadra)%>%
+  summarize(media=sum(FMV*P)/sum(P))
+```
+Partiamo con un grafico che mostra l'andamento delle squadre:
+```{r}
+f<-FMVsquadra%>%
+  ggplot(aes(anno,media,color=squadra))+
+  geom_line()+
+  coord_cartesian(ylim = c(5,8))+
+  theme_minimal()
+ggplotly(f)
+```
+Nonostante ci siano solamente 11 squadre diventa comunque difficile capire quale sia il reale andamento. Si prova a selezionare solo una squadra, la Juventus:
+```{r}
+filter(FMVsquadra,squadra=="JUVENTUS")%>%
+  ggplot(aes(anno,media))+
+  geom_line()+
+  coord_cartesian(ylim = c(6,7))+
+  theme_minimal()
+```
+Per capire il trend delle diverse squadre bisognerebbe generare 11 modelli diversi, che renderebbe lungo il procedimento; tramite il dataframe annidato risolviamo questo problema. 
+```{r}
+by_giocatori<-FMVsquadra%>%
+  group_by(squadra)%>%
+  nest()
+```
+La tabella by_giocatori è formata da una colonna data che contiene per ogni squadra la lista degli anni e delle corrispondenti medie, possiamo quindi accedere agli elementi della lista; ad esempio accediamo all' elemento che è la squadra JUVENTUS: 
+```{r}
+by_giocatori$data[[6]]
+```
+Creiamo la funzione di adattamento del modello:
+```{r}
+giocatori_model<-function(df){
+  lm(media~anno,data=df)
+}
+```
+Vogliamo applicare questa funzione ad ogni data frame, ma questi sono contenuti in una lista. Si utilizza allora purrr::map() per applicare questo modello ad ogni elemento. Creiamo una nuova variabile nel data frame by_giocatore con mutate():
+```{r}
+by_giocatori<-by_giocatori%>%
+  mutate(model=map(data,giocatori_model))
+```
+Ora ci sono quindi 11 data frame e 11 modelli. Per aggiungere i residui bisogna  chiamare la funzione add_residuals() per ogni coppia di modelli e dati usando la funzione map2().
+```{r}
+by_giocatori<-by_giocatori%>%
+  mutate(
+    data=map2(data,model,add_residuals)
+  )
+```
+Ora che abbiamo tutto quello che serve si vogliono produrre dei grafici. Ma c'è una lista di data frame che non possono essere graficati, allora si utilizza la funzione unnest() per passare da data frame annidato a data frame e si visualizzano i residui:
+```{r}
+(resids<-unnest(by_giocatori,data))
+resids%>%
+  ggplot(aes(anno,resid))+
+  geom_line(aes(group=squadra),alpha=1/3)+
+  geom_smooth(se=FALSE)+
+  theme_minimal()+
+  coord_cartesian(ylim=c(-0.8,0.6))
+```
+Andiamo a vedere alcuni indicatori statistici con la funzione glance() del pacchetto broom:
+```{r, results='hide'}
+by_giocatori<-by_giocatori%>%
+  mutate(glance=map(model,broom::glance))
+  
+unnest(by_giocatori,glance)
+glance=unnest(by_giocatori, glance, .drop=TRUE)
+```
+Ordiniamo in ordine descrescente della variabile r.squared e creiamo una variabile che tenga conto solo delle squadre con r.squared>0.3:
+```{r}
+glance%>%
+  arrange(desc(r.squared))
+good_fit<-filter(glance,r.squared>0.3)
+g<-FMVsquadra%>%
+  semi_join(good_fit,by="squadra")%>%
+  ggplot(aes(anno,media,color=squadra))+
+  geom_line()+
+  theme_minimal()+
+  coord_cartesian(ylim = c(5,7))
+ggplotly(g)
+```
+Le squadre che in questi anni hanno avuto un miglioramente nel fanta media voto aggregato quindi l'Inter e l'Udinese e il Napoli. Per tutte le altre squadre abbiamo un r quadro non molto alto, con oscillazoni di anno in anno del fanta media voto.
+
+## All'aumentare del FMV aggregato aumenta il punteggio della squadra?
+Come nel caso precedente, andiamo a creare il FMV aggregato di ogni squadra nei diversi anni (è una media pesata con pesi le presenze dei giocatori):
+```{r}
+mediapesata<-giocatori%>%
+  group_by(anno,squadra)%>%
+  summarize(FantaMediaVoto=sum(FMV*P)/sum(P))
+relazione<-mediapesata%>%
+  inner_join(squadre)
+h<-relazione%>%
+  ggplot(aes(x=FantaMediaVoto,y=punti,group=squadra,frame=anno))+
+  geom_point()+
+  labs(title="All'aumentare del FMV aggregato aumenta il punteggio")+
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(h)
+```
+Dal grafico si vede come, nei diversi anni, le squadre che hanno avuto un fanta media voto aggregato più alto sono quelle che hanno raggiunto posizioni alte in classifica. Costruiamo un modello lineare semplice:
+```{r}
+mod4<-lm(punti~FantaMediaVoto,data=relazione)
+summary(mod4)
+```
+Quasi l'86% del punteggio finale di una squadra è spiegato attraverso il FMV aggregato dei giocatori che compongono quella squadra.
+```{r}
+relazione1<-relazione%>%
+ add_residuals(mod4,"resid")
+ggplot(relazione1, aes(FantaMediaVoto,resid))+
+  geom_point()+
+  coord_cartesian(ylim=c(-30,30))
+```
+Il grafico dei residui non mostra particolari andamenti, questo vuol dire che il modello è buono.
+
+### Concentriamoci solo sulla stagione 2017/2018
+```{r}
+i<-relazione%>%
+  filter(anno==2017)%>%
+  ggplot(aes(x=FantaMediaVoto,y=punti,color=squadra))+
+      geom_point()+
+      labs(title="Stagione 2017/2018")+
+      theme(plot.title = element_text(hjust = 0.5))
+ggplotly(i)
+```
+Vediamo la tabella relazione:
+``` {r}
+relazionequant<-select(relazione,-squadra)
+squadrecorr<-cor(relazionequant)
+corrplot(squadrecorr,method="ellipse", diag=FALSE, order="hclust", title="Correlazioni tra le variabili delle squadre", mar=c(1,2,3,2))
+```
+Da questa tabella capiamo che la variabile punti, oltre ad essere, come si è visto fortemente correlata con il FMV
+
+# C'è un vantaggio a giocare in casa?
+```{r}
+squadrecasa<-squadre%>%
+  filter(anno==2017)%>%
+  group_by(anno,squadra)%>%
+  summarize(PropVittCasa=sum(VC)/(VC+VT),PropVittTrasf=sum(VT)/(VC+VT))%>%
+  filter(PropVittCasa>PropVittTrasf)%>%
+  arrange(desc(PropVittCasa))
+
+# quindi c'è più probabilità a vincere in casa
+
+billboarder() %>%
+  bb_barchart(
+    data = squadrecasa[,c("squadra", "PropVittCasa", "PropVittTrasf")], 
+    stacked = TRUE, rotated = TRUE
+  ) %>%
+  bb_y_grid(show = TRUE)%>%
+  bb_labs(title = "Proporzione vittorie casa e trasf")
+```
+
+
+```{r}
+anno2017<-filter(squadre,anno==2017)
+
+billboarder() %>%
+  bb_barchart(
+    data = anno2017[, c("squadra", "VC", "VT", "PC", "PT")], 
+    stacked = TRUE, rotated = TRUE
+  ) %>%
+  bb_y_grid(show = TRUE)%>%
+  bb_labs(title = "Andamento squadre")
+```
+
+ciao
+ciaoo
