@@ -296,7 +296,7 @@ summary(mod2)
 Queste variabili spiegano dunque l'84% della variabilità del FMV.
 
 ### Migliori giocatori
-Si vuole ora vedere di ogni stagione, i 5 migliori giocatori (quelli con FMV maggiore). Dei 7 anni considerati si raggruppa per anno, selezionando solo 5 giocatori per anno, quelli che hanno ottenuto un FMV più alto (filtrando quelli con più di 10 presenze). In un grafico si visualizzano sull'asse delle x i goal e sull'asse delle y il relativo FMV, dove pallini con dimensione maggiore indicano un maggior numero di assist effettuati:
+Si vuole ora vedere di ogni stagione, i 5 migliori giocatori (quelli con FMV maggiore) filtrando quelli con più di 10 presenze. In un grafico si visualizzano sull'asse delle x i Goal e sull'asse delle y il relativo FMV, dove pallini con dimensione maggiore indicano un maggior numero di assist effettuati:
 ```{r}
 d<-giocatori%>%
   filter(P>10)%>%
@@ -310,7 +310,7 @@ d<-giocatori%>%
 
 ggplotly(d)
 ```
-Si considera ora solo l'utima stagione e si vanno a guardare chi ha ottenuto un FMV maggiore di 7.5 con più di 15 presenze. Il grafico mostra i goal e la dimensione rappresenta il numero di assist effettuati.
+Si considera ora solo l'utima stagione e si va a guardare chi ha ottenuto un FMV maggiore di 7.5 con più di 15 presenze. Il grafico mostra i goal e la dimensione rappresenta il numero di assist effettuati.
 ```{r}
 e<-giocatori%>%
   filter(anno==2017 & FMV>=7.5 & P>15)%>%
@@ -324,7 +324,7 @@ e<-giocatori%>%
   theme(plot.title = element_text(hjust = 0.5))
 ggplotly(e)
 ```
-Quindi per la rosa di quest'anno, vedendo i risultati verrebbe da prenderne alcuni di questi (sono ancora tutti in serie A). Però ogni stagione è diversa, non è detto che, se hanno ottenuto una buona FMV l'anno scorso la ottengano anche quest'anno.
+Quindi per la rosa di quest'anno, vedendo i risultati verrebbe da prenderne alcuni di questi (sono ancora tutti in serie A). Però ogni stagione è diversa, non è detto che, se hanno ottenuto un buon FMV l'anno scorso la ottengano anche quest'anno.
 
 ## Esiste una correlazione tra valutazione iniziale e FMV?
 Per vedere tutto questo occorre far parlare le due tabelle, dobbiamo fare un inner_join in modo che tutti i valori della tabella giocatore trovino una corrispondenza nella tabella valutazioni.
@@ -340,7 +340,7 @@ valutaz%>%
   theme(plot.title = element_text(hjust = 0.5))+
   facet_wrap(~ anno)
 ```
-Dando una rapida occhiata ai grafici sembrerebbe che il FMV sia correlato con la valutazione. Costruiamo un modello e andiamo a vedere quanta variabilità del FMV è spiegato dalla variabile valutazione:
+Dando una rapida occhiata ai grafici sembrerebbe che il FMV sia correlato con la valutazione. Costruiamo un modello e andiamo a vedere quanta variabilità del FMV è spiegata dalla variabile valutazione:
 ```{r}
 mod3 <- lm(FMV ~ valutazione, data = valutaz)
 summary(mod1)
@@ -350,7 +350,7 @@ valutaz<-valutaz%>%
 ggplot(valutaz, aes(valutazione,resid))+
   geom_hex(bins=30)
 ```
-Il grafico dei residui mi fa capire che la variabile esplicativa non ha colto, per la maggior parte, la variabilità della varaibile risposta. Da tutto ciò si deduce che non bisogna basarsi solo sulle valutazioni iniziali pubblicate nel quotidiano sportivo.
+Il grafico dei residui fa capire che la variabile esplicativa non ha colto, per la maggior parte, la variabilità della varaibile risposta. Da tutto ciò si deduce che non bisogna basarsi solo sulle valutazioni iniziali pubblicate nel quotidiano sportivo.
 
 ## Come si evolve il FMV delle squadre nel tempo?
 La tabella squadre contiene informazioni sulle squadre degli ultimi 7 campionati di serie A. Ci sono delle squadre che non sono presenti in tutte le stagioni, quindi per questa analisi si considerano solo le squadre che sono presenti in tutti gli anni considerati, che sono le seguenti:
@@ -360,7 +360,7 @@ squadre%>%
   filter(n==7)%>%
   select(squadra)
 ```
-Ci sono quindi 11 squadre, per fare l'analisi se il FMV aumenta nel tempo consideremo solo queste. Si salva questo risultao in una variabile squadre7.
+Ci sono 11 squadre, per fare l'analisi se il FMV aumenta nel tempo consideremo solo queste. Si salva il risultao in una variabile squadre7.
 ```{r}
 squadre7<-squadre%>%
   count(squadra)%>%
@@ -547,7 +547,7 @@ billboarder() %>%
   ) %>%
   bb_y_grid(show = TRUE)
 ```
-Da questa visualizzazione si può vedere come, gicando in casa, si facciano più goal e si subiscono meno goal.
+Da questa visualizzazione si può vedere come, gicando in casa, si facciano più goal e se ne subiscono.
 
 ## Come può essere spiegata la forza della Juventus?
 Nelle ultime 7 stagioni la Juventus è riuscita ad arrivare sempre prima. Di seguito un'analisi generale tenendo conto di tutti questi anni:
@@ -580,5 +580,5 @@ Tra i bonus/malus, quelli che sono maggiormente correlati con il FMV sono:
 
 Bisogna scegliere alcuni attaccanti o centrocampisti che, basandosi sulla stagione passata o al limite sulle ultime due stagioni, hanno avuto un fanta media voto alto. Però bisogna anche rischiare, scommettere su alcuni giocatori promettenti (la cui valutazione iniziale è bassa ma portebbero fare un ottimo campionato).
 Un altro consiglio potrebbe essere quello di prendere giocatori della squadra che negli ultimi anni si è posizionata bene in classifica.
-Consigli su chi schierare di giornata in giornata: c'è una maggior probabilità per le squadre di vincere in casa (la squadra che vince ovviamente segnerà) quindi se ci sono centrocampisti o attaccanti che giocano in casa conviene schierarli in campo.
-Detta così sembrerebbe davvero semplice, ma non lo è affatto. A tutto questo concorrono moltissime variabili non prevedibili a priori come ad esempio il calo di forma, il rapporto tra il calciatore e l'allenatore, eventuali infortuni, solo per elencarne alcune. Non c'è nulla di certo, in fondo prendere alcuni giocatori piuttosto che altri potrebbe essere vista come una scommessa, quindi ci vuole sempre un pizzico di fortuna!
+**Consigli su chi schierare di giornata in giornata**: c'è una maggior probabilità per le squadre di vincere in casa (la squadra che vince ovviamente segnerà almeno 1 goal) quindi se ci sono centrocampisti o attaccanti che giocano in casa conviene schierarli in campo.
+Detta così sembrerebbe davvero semplice, ma non lo è affatto. A tutto questo concorrono moltissime variabili non prevedibili a priori come ad esempio il calo di forma, il rapporto tra il calciatore e l'allenatore, eventuali infortuni, solo per elencarne alcune. Non c'è nulla di certo, in fondo prendere alcuni giocatori piuttosto che altri potrebbe essere vista come una scommessa, dove quindi ci vuole sempre un pizzico di fortuna!
