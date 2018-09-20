@@ -32,8 +32,8 @@ In questa analisi il mio obiettivo è scoprire più nel dettaglio questo gioco; 
 + Esiste una correlazione tra la valutazione iniziale dei giocatori, pubblicata sulla Gazzetta dello sport prima dell'inizio del campionato, e il fanta media voto?
 + La squadra che ha il fanta media voto più alto è quella che ottiene un punteggio maggiore e quindi vince il campionato?
 + Il fanta media voto delle diverse squadre come si evolve nel tempo?
-+ La forza della Juventus può esere spiegata attraverso alcune variabili?
-+ Consigli per i giocatori da prendere e successivamente da schierare.
++ Come può essere spiegata la forza della Juventus?
++ Consigli per i giocatori da prendere e successivamente da schierare in campo.
 
 ## Dataset utilizzati
 Per questa analisi sono stati utilizzati 3 dataset, costruiti grazie a dati ricavati da 3 diversi siti internet, i quali fornivano informazioni suddivise in base agli anni.
@@ -310,7 +310,6 @@ d<-giocatori%>%
 
 ggplotly(d)
 ```
-
 Si considera ora solo l'utima stagione e si vanno a guardare chi ha ottenuto un FMV maggiore di 7.5 con più di 15 presenze. Il grafico mostra i goal e la dimensione rappresenta il numero di assist effettuati.
 ```{r}
 e<-giocatori%>%
@@ -353,7 +352,7 @@ ggplot(valutaz, aes(valutazione,resid))+
 ```
 Il grafico dei residui mi fa capire che la variabile esplicativa non ha colto, per la maggior parte, la variabilità della varaibile risposta. Da tutto ciò si deduce che non bisogna basarsi solo sulle valutazioni iniziali pubblicate nel quotidiano sportivo.
 
-# Come si evolve il FMV delle squadre nel tempo
+## Come si evolve il FMV delle squadre nel tempo?
 La tabella squadre contiene informazioni sulle squadre degli ultimi 7 campionati di serie A. Ci sono delle squadre che non sono presenti in tutte le stagioni, quindi per questa analisi si considerano solo le squadre che sono presenti in tutti gli anni considerati, che sono le seguenti:
 ```{r}
 squadre%>%
@@ -497,46 +496,89 @@ i<-relazione%>%
       theme(plot.title = element_text(hjust = 0.5))
 ggplotly(i)
 ```
-Vediamo la tabella relazione:
+Le squadre che hanno ottenuto un FMV alto (JUVENTUS e NAPOLI) sono quelle che sono arrivate rispettivamente prime e seconde in campionato.
+
+## C'è un vantaggio per le squadre a giocare in casa?
+Si va a guardare ora la tabella relazione per vedere eventuali associazioni tra le variabili:
 ``` {r}
 relazionequant<-select(relazione,-squadra)
 squadrecorr<-cor(relazionequant)
 corrplot(squadrecorr,method="ellipse", diag=FALSE, order="hclust", title="Correlazioni tra le variabili delle squadre", mar=c(1,2,3,2))
 ```
-Da questa tabella capiamo che la variabile punti, oltre ad essere, come si è visto fortemente correlata con il FMV
-
-# C'è un vantaggio a giocare in casa?
+Da questa tabella capiamo come la variabile punti, oltre ad essere fortemente legata al FMV, è correlata positivamente con i goal fatti (in casa e in trasferta) ed è correlata negativamente con i goal subiti (in casa e in trasferta).
+Ma quello che si vuole capire è se esiste un vantaggio a giocare in casa.
 ```{r}
 squadrecasa<-squadre%>%
-  filter(anno==2017)%>%
-  group_by(anno,squadra)%>%
-  summarize(PropVittCasa=sum(VC)/(VC+VT),PropVittTrasf=sum(VT)/(VC+VT))%>%
-  filter(PropVittCasa>PropVittTrasf)%>%
-  arrange(desc(PropVittCasa))
-
-# quindi c'è più probabilità a vincere in casa
+  group_by(squadra)%>%
+  summarize(PropVittCasa=sum(VC)/sum((VC+VT)),PropVittTrasf=sum(VT)/sum((VC+VT)))%>%
+  inner_join(squadre7)
 
 billboarder() %>%
   bb_barchart(
     data = squadrecasa[,c("squadra", "PropVittCasa", "PropVittTrasf")], 
     stacked = TRUE, rotated = TRUE
   ) %>%
-  bb_y_grid(show = TRUE)%>%
-  bb_labs(title = "Proporzione vittorie casa e trasf")
+  bb_y_grid(show = TRUE)
 ```
-
-
+Da questa visualizzazione si può capire come ci sia un notevole vantaggio a giocare in casa.
 ```{r}
-anno2017<-filter(squadre,anno==2017)
-
+andamento<-squadre%>%
+          group_by(squadra)%>%
+          summarize(vittcasa=sum(VC),vitttrasf=sum(VT), sconfcasa=sum(SC), sconftrasf=sum(ST))
 billboarder() %>%
   bb_barchart(
-    data = anno2017[, c("squadra", "VC", "VT", "PC", "PT")], 
+    data = andamento[, c("squadra", "vittcasa", "vitttrasf","sconfcasa", "sconftrasf")], 
     stacked = TRUE, rotated = TRUE
   ) %>%
   bb_y_grid(show = TRUE)%>%
   bb_labs(title = "Andamento squadre")
 ```
+Anche da questo grafico si nota come le squadre, generalmente, abbiano un beneficio a giocare in casa.
+```{r}
+diffreti<-squadre%>%
+  group_by(squadra)%>%
+  summarize(sommaDFcasa=sum(DR_CASA), sommaDFtrasf=sum(DR_TRASF))%>%
+  inner_join(squadre7)
 
-ciao
-ciaoo
+billboarder() %>%
+  bb_barchart(
+    data = diffreti[, c("squadra", "sommaDFcasa", "sommaDFtrasf")], 
+    stacked = TRUE, rotated = TRUE
+  ) %>%
+  bb_y_grid(show = TRUE)
+```
+Da questa visualizzazione si può vedere come, gicando in casa, si facciano più goal e si subiscono meno goal.
+
+## Come può essere spiegata la forza della Juventus?
+Nelle ultime 7 stagioni la Juventus è riuscita ad arrivare sempre prima. Di seguito un'analisi generale tenendo conto di tutti questi anni:
+```{r}
+analisiJuve<-relazione%>%
+  inner_join(squadre7)%>%
+  group_by(squadra)%>%
+  summarize(TotGoalCasa=sum(GF_CASA), TotVittCasa=sum(VC), TotVittTrasf=sum(VT),FMV =mean(FantaMediaVoto))%>%
+  arrange(desc(FMV))
+
+analisiJuve
+```
+La potenza di questa squadra può essere brevemente spiegata dicendo che, in queste ultime 7 stagioni, è la squadra con più goal fatti in casa, con più vittorie in casa ed è inoltre la squadra che è riuscita a fare più vittorie in trasferta e quella con il fanta media voto (media degli ultimi 7 anni) più alto. Graficamente la situazione è la seguente:
+```{r}
+billboarder() %>%
+  bb_barchart(
+    data = analisiJuve[, c("squadra", "TotGoalCasa", "TotVittCasa", "TotVittTrasf")], 
+    stacked = TRUE, rotated = TRUE
+  ) %>%
+  bb_y_grid(show = TRUE)
+```
+
+## Consigli finali
+In conclusione, questa analisi in cosa ci può essere di aiuto nel caso decidessimo di partecipare al Fantacalcio? Abbiamo capito diverse cose; inanzitutto non bisogna basarsi solo sulla valutazione iniziale per decidere i giocatori da prendere, quindi la strategia *"compro i giocatori che hanno una valutazione più alta"* è da rivedere. Questo perchè a valutazioni basse potrebbero corrispondere alti FMV a fine anno (giocatori che disputano una stagione sopra le aspettative) o, al contrario, a valutazioni alte corrispondono FMV bassi (giocatori sopravvalutati ad inizio anno, perchè magari hanno disputato un'ottima stagione in precedenza, non confermano le aspettative).
+Tra i bonus/malus, quelli che sono maggiormente correlati con il FMV sono:
+
+* Goal e assist: coloro che segnano di più sono gli attaccanti e coloro che effettuano più assist sono sia attaccanti che centrocampisti.
+
+* Goal subiti dal portiere: i portieri raggiungono difficilmente un FMV elevato, questo perchè sono soggetti a più malus che bonus, scegliere ad inizio anno il portiere che subirà meno goal non è affatto facile.
+
+Bisogna scegliere alcuni attaccanti o centrocampisti che, basandosi sulla stagione passata o al limite sulle ultime due stagioni, hanno avuto un fanta media voto alto. Però bisogna anche rischiare, scommettere su alcuni giocatori promettenti (la cui valutazione iniziale è bassa ma portebbero fare un ottimo campionato).
+Un altro consiglio potrebbe essere quello di prendere giocatori della squadra che negli ultimi anni si è posizionata bene in classifica.
+Consigli su chi schierare di giornata in giornata: c'è una maggior probabilità per le squadre di vincere in casa (la squadra che vince ovviamente segnerà) quindi se ci sono centrocampisti o attaccanti che giocano in casa conviene schierarli in campo.
+Detta così sembrerebbe davvero semplice, ma non lo è affatto. A tutto questo concorrono moltissime variabili non prevedibili a priori come ad esempio il calo di forma, il rapporto tra il calciatore e l'allenatore, eventuali infortuni, solo per elencarne alcune. Non c'è nulla di certo, in fondo prendere alcuni giocatori piuttosto che altri potrebbe essere vista come una scommessa, quindi ci vuole sempre un pizzico di fortuna!
